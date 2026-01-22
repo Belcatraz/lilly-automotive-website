@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <style>
         * {
             margin: 0;
@@ -574,6 +576,54 @@
             text-decoration: none;
         }
 
+        /* Calendar styling */
+        .flatpickr-calendar {
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .flatpickr-months .flatpickr-month,
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-weekdays,
+        span.flatpickr-weekday {
+            background: var(--dark-card);
+            color: var(--text);
+        }
+
+        .flatpickr-day {
+            color: var(--text);
+        }
+
+        .flatpickr-day:hover {
+            background: var(--border);
+            border-color: var(--border);
+        }
+
+        .flatpickr-day.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .flatpickr-day.selected:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .flatpickr-day.disabled {
+            color: var(--text-dim);
+        }
+
+        .flatpickr-months .flatpickr-prev-month svg,
+        .flatpickr-months .flatpickr-next-month svg {
+            fill: var(--text);
+        }
+
+        .flatpickr-months .flatpickr-prev-month:hover svg,
+        .flatpickr-months .flatpickr-next-month:hover svg {
+            fill: var(--primary);
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .services-grid {
@@ -855,7 +905,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="date">Preferred Date</label>
-                                <input type="date" id="date" name="date" required>
+                                <input type="text" id="date" name="date" placeholder="Select a date" required readonly>
                             </div>
                             <div class="form-group">
                                 <label for="service">Service</label>
@@ -894,15 +944,26 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script>
         // Initialize EmailJS
         emailjs.init("bgQC78pXKPA6Zhd8G");
 
-        // Set minimum date to today
-        const dateInput = document.getElementById('date');
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.setAttribute('min', today);
+        // Initialize calendar date picker
+        flatpickr("#date", {
+            minDate: "today",
+            dateFormat: "F j, Y",
+            disableMobile: true,
+            disable: [
+                function(date) {
+                    return date.getDay() === 0; // Disable Sundays
+                }
+            ],
+            locale: {
+                firstDayOfWeek: 0
+            }
+        });
 
         // Form handler
         document.getElementById('appointmentForm').addEventListener('submit', function(e) {
