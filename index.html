@@ -894,7 +894,11 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script>
+        // Initialize EmailJS
+        emailjs.init("bgQC78pXKPA6Zhd8G");
+
         // Set minimum date to today
         const dateInput = document.getElementById('date');
         const today = new Date().toISOString().split('T')[0];
@@ -903,11 +907,35 @@
         // Form handler
         document.getElementById('appointmentForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            document.getElementById('successMessage').classList.add('show');
-            this.reset();
-            setTimeout(() => {
-                document.getElementById('successMessage').classList.remove('show');
-            }, 5000);
+
+            const submitBtn = this.querySelector('.form-submit');
+            submitBtn.textContent = 'Sending...';
+            submitBtn.disabled = true;
+
+            const templateParams = {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                vehicle: document.getElementById('vehicle').value,
+                date: document.getElementById('date').value,
+                service: document.getElementById('service').value,
+                message: document.getElementById('message').value || 'None provided'
+            };
+
+            emailjs.send('service_ox9ca0y', 'template_d7vjve2', templateParams)
+                .then(function() {
+                    document.getElementById('successMessage').classList.add('show');
+                    submitBtn.textContent = 'Request Appointment';
+                    submitBtn.disabled = false;
+                    document.getElementById('appointmentForm').reset();
+                    setTimeout(() => {
+                        document.getElementById('successMessage').classList.remove('show');
+                    }, 5000);
+                }, function(error) {
+                    alert('Something went wrong. Please call us at (478) 960-2829');
+                    submitBtn.textContent = 'Request Appointment';
+                    submitBtn.disabled = false;
+                    console.error('EmailJS error:', error);
+                });
         });
     </script>
 </body>
