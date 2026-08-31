@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lilly-appointment-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-31",
+  "workers_dev": true,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "appointments.lillyautomotivellc.com",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://lillyautomotivellc.com,https://www.lillyautomotivellc.com",
+    "ALLOWED_TURNSTILE_HOSTNAMES": "lillyautomotivellc.com,www.lillyautomotivellc.com",
+    "PUBLIC_BASE_URL": "https://appointments.lillyautomotivellc.com",
+    "NOTIFICATION_FROM": "appointments@lillyautomotivellc.com",
+    "NOTIFICATION_TO": "ajlillyautomotive@gmail.com"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lilly-appointment-requests",
+      "database_id": "cb05c2b0-0e14-4ea8-9385-2bfc41e9bb70"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "MEDIA",
+      "id": "49b5e49cd16a4206aa4d5be0c0164826"
+    }
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "destination_address": "ajlillyautomotive@gmail.com"
+    }
+  ]
+}

@@ -2,45 +2,55 @@
 
 ## Overview
 
-Single-page marketing website for Lilly Automotive auto repair shop. Static HTML/CSS/JS with no build process.
+Single-page marketing website for Lilly Automotive auto repair shop. Static HTML/CSS/JS frontend with a Cloudflare Worker appointment API.
 
 ## Setup
 
 ```bash
-# No dependencies to install - just open index.html in a browser
+# Frontend has no build. Serve it over HTTP for local testing.
+python -m http.server 8000
+
+# Worker tests
+cd worker
+npm test
 ```
 
 ## Development Commands
 
 | Task | Command |
 |------|---------|
-| View site | Open `index.html` in browser |
-| Deploy | Push to `main` branch (GitHub Pages auto-deploys) |
+| View site | Run `python -m http.server 8000` and open localhost |
+| Test Worker | Run `npm test` from `worker/` |
+| Deploy frontend | Push to `main` branch (GitHub Pages auto-deploys) |
+| Deploy API | Deploy `worker/src/index.js` with the bindings in `worker/wrangler.jsonc` |
 
 ## Architecture
 
-Single `index.html` file containing:
+The frontend is a single `index.html` file containing:
 - Embedded CSS in `<style>` tags
 - Embedded JavaScript at end of `<body>`
-- External CDN dependencies (Google Fonts, Flatpickr, EmailJS)
+- External CDN dependencies (Google Fonts and Cloudflare Turnstile)
+
+The API in `worker/` uses Cloudflare Worker + D1 + Workers KV + Turnstile + Email Service.
 
 ## Key Files
 
 - `index.html` - Main website (all code)
 - `logo.jpg` - Business logo
 - `CNAME` - Custom domain configuration
+- `worker/src/index.js` - Appointment API
+- `worker/schema.sql` - D1 schema
+- `worker/wrangler.jsonc` - Binding reference (never place secrets here)
 
-## Third-Party Services
+## Cloudflare Appointment Service
 
-### EmailJS (Contact Form)
-Credentials are in `index.html`. Template expects these parameters:
-- `name` - Customer name
-- `phone` - Phone number
-- `vehicle` - Year, Make, Model
-- `date` - Preferred appointment date
-- `service` - Service type
-- `message` - Additional details
-- `vehicle_id` - License plate or VIN (optional)
+The form submits `multipart/form-data` to the Worker with:
+- `name`, `phone`, `service` - required quick fields
+- `vehicle`, `preferred_date`, `details` - optional details
+- `media` - up to 3 optional photos/videos
+- `cf-turnstile-response` - mandatory spam validation token
+
+The Worker stores the request in D1, uploads in private Workers KV with a 30-day expiry, and sends a plain business notification through Cloudflare Email Service. `TURNSTILE_SECRET` and `MEDIA_LINK_SECRET` must stay in Cloudflare secrets.
 
 ## Design System
 
@@ -51,11 +61,12 @@ Credentials are in `index.html`. Template expects these parameters:
 
 ## Testing
 
-1. Open `index.html` in browser
+1. Serve and open `index.html` through localhost
 2. Test responsive design at mobile/tablet/desktop widths
 3. Verify form validation (required fields)
-4. Test date picker (Sundays should be disabled)
-5. Form submission requires valid EmailJS configuration
+4. Verify Sundays are rejected and uploads enforce count/size limits
+5. Run `npm test` from `worker/`
+6. Never send a real business notification as a test without explicit approval
 
 ## Branch Protection (Recommended)
 
@@ -72,4 +83,4 @@ Edit the `.hours-grid` section in `index.html`
 Add a new `.service-card` div in the services grid
 
 ### Modify form fields
-Update both the HTML form and the `templateParams` object in the JavaScript
+Update the form HTML, frontend JavaScript, Worker validation, D1 schema if needed, and notification formatting
