@@ -50,4 +50,4 @@ Push to the `main` branch. GitHub Pages automatically deploys changes.
 
 - **Phone:** (478) 960-2829
 - **Address:** 720 S Pleasant Hill Rd, Warner Robins, GA 31088
-- **Hours:** Mon-Fri 8AM-5PM, Sat 8AM-12PM, Sun Closed
+- **Hours:** Mon-Fri 9AM-5PM, Sat 9AM-12PM, Sun Closed
