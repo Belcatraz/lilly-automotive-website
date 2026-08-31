@@ -67,6 +67,15 @@ test("media validation enforces supported formats", () => {
   assert.match(blocked.error, /not a supported/);
 });
 
+test("media validation accepts the reported 20.72 MiB video", () => {
+  const reportedVideoSize = 21_728_311;
+  const result = validateFiles([
+    new File([new Uint8Array(reportedVideoSize)], "ronaldthrow.mp4", { type: "video/mp4" }),
+  ]);
+
+  assert.equal(result.ok, true);
+});
+
 test("honeypot submissions are acknowledged without storage", async () => {
   const form = new FormData();
   form.set("website", "https://spam.example");

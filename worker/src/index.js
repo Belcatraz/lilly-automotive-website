@@ -33,7 +33,7 @@ const ALLOWED_MEDIA_TYPES = new Set([
 ]);
 
 const MAX_FILES = 3;
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_FILE_BYTES = 24 * 1024 * 1024;
 const MAX_TOTAL_FILE_BYTES = 40 * 1024 * 1024;
 const MAX_REQUEST_BYTES = 45 * 1024 * 1024;
 const MEDIA_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -288,7 +288,7 @@ export function validateFiles(entries) {
       return { ok: false, error: `“${sanitizeFilename(file.name)}” is not a supported photo or video format.` };
     }
     if (file.size > MAX_FILE_BYTES) {
-      return { ok: false, error: `“${sanitizeFilename(file.name)}” is larger than 20 MB.` };
+      return { ok: false, error: `“${sanitizeFilename(file.name)}” is larger than 24 MB.` };
     }
     totalBytes += file.size;
   }

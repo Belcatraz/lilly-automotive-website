@@ -933,20 +933,43 @@
             min-height: 90px;
         }
 
-        .form-group input[type="file"] {
-            padding: 10px;
-            color: var(--text-muted);
+        .file-picker-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
-        .form-group input[type="file"]::file-selector-button {
+        .file-picker-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .file-picker-button {
             border: 1px solid var(--border);
             background: var(--dark-elevated);
             color: var(--text);
             font: inherit;
             font-weight: 600;
             padding: 10px 12px;
-            margin-right: 12px;
             cursor: pointer;
+        }
+
+        .file-picker-input:focus-visible + .file-picker-button {
+            outline: 2px solid var(--primary);
+            outline-offset: 3px;
+        }
+
+        .file-picker-copy {
+            color: var(--text-muted);
+            font-size: 13px;
         }
 
         .form-group select {
@@ -1080,6 +1103,54 @@
 
         .file-summary {
             margin-top: 7px;
+        }
+
+        .file-summary[data-state="error"] {
+            color: #e26b6b;
+        }
+
+        .file-list {
+            display: grid;
+            gap: 8px;
+            padding: 0;
+            margin: 10px 0 0;
+            list-style: none;
+        }
+
+        .file-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid var(--border-subtle);
+            background: var(--dark-elevated);
+        }
+
+        .file-list-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .file-remove {
+            flex: 0 0 auto;
+            border: 0;
+            background: transparent;
+            color: var(--primary-bright);
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .file-remove:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 3px;
         }
 
         .privacy-note {
@@ -1537,9 +1608,14 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="media">Photos or short videos <span aria-hidden="true">(optional)</span></label>
-                                    <input type="file" id="media" name="media" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/webm" multiple aria-describedby="mediaNote mediaSummary">
-                                    <span class="field-note" id="mediaNote">Up to 3 files, 20 MB each, and 40 MB total.</span>
+                                    <div class="file-picker-row">
+                                        <input class="file-picker-input" type="file" id="media" name="media" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/webm" multiple aria-describedby="mediaNote mediaSummary">
+                                        <label class="file-picker-button" for="media">Choose photos or videos</label>
+                                        <span class="file-picker-copy">Choose again to add another file.</span>
+                                    </div>
+                                    <span class="field-note" id="mediaNote">Up to 3 files, 24 MB each, and 40 MB total.</span>
                                     <p class="file-summary" id="mediaSummary">No files selected.</p>
+                                    <ul class="file-list" id="mediaList" aria-label="Selected photos and videos"></ul>
                                 </div>
                             </div>
                         </details>
@@ -1584,8 +1660,24 @@
         const submitSpan = submitBtn.querySelector('span');
         const mediaInput = document.getElementById('media');
         const mediaSummary = document.getElementById('mediaSummary');
+        const mediaList = document.getElementById('mediaList');
         const preferredDate = document.getElementById('preferred_date');
         const optionalDetails = document.getElementById('optionalDetails');
+        const maxMediaFiles = 3;
+        const maxMediaFileBytes = 24 * 1024 * 1024;
+        const maxTotalMediaBytes = 40 * 1024 * 1024;
+        const allowedMediaTypes = new Set([
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/heic',
+            'image/heif',
+            'video/mp4',
+            'video/quicktime',
+            'video/webm'
+        ]);
+        let selectedMediaFiles = [];
+        let mediaSelectionNotice = '';
 
         const today = new Date();
         const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
@@ -1618,23 +1710,68 @@
             return true;
         }
 
-        function validateMedia() {
-            const files = Array.from(mediaInput.files || []);
-            const maxFileBytes = 20 * 1024 * 1024;
-            const maxTotalBytes = 40 * 1024 * 1024;
-            const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+        function mediaFileKey(file) {
+            return [file.name, file.size, file.type, file.lastModified].join(':');
+        }
 
-            mediaInput.setCustomValidity('');
-            if (files.length > 3) {
-                mediaInput.setCustomValidity('Please upload no more than 3 files.');
-            } else if (files.some(file => file.size > maxFileBytes)) {
-                mediaInput.setCustomValidity('Each file must be 20 MB or less.');
-            } else if (totalBytes > maxTotalBytes) {
-                mediaInput.setCustomValidity('Uploads must be 40 MB or less in total.');
+        function getMediaValidationError() {
+            const totalBytes = selectedMediaFiles.reduce((sum, file) => sum + file.size, 0);
+            const unsupported = selectedMediaFiles.find(file => !allowedMediaTypes.has(file.type.toLowerCase()));
+            const oversized = selectedMediaFiles.find(file => file.size > maxMediaFileBytes);
+
+            if (unsupported) {
+                return `${unsupported.name} is not a supported photo or video format.`;
             }
+            if (oversized) {
+                return `${oversized.name} is larger than 24 MB.`;
+            }
+            if (totalBytes > maxTotalMediaBytes) {
+                return 'Uploads must be 40 MB or less in total.';
+            }
+            return '';
+        }
 
-            if (mediaInput.validationMessage) {
-                mediaInput.reportValidity();
+        function renderMediaSelection() {
+            const validationError = getMediaValidationError();
+            const count = selectedMediaFiles.length;
+            const summary = count
+                ? `${count} file${count === 1 ? '' : 's'} selected.`
+                : 'No files selected.';
+            const extra = [mediaSelectionNotice, validationError].filter(Boolean).join(' ');
+
+            mediaSummary.textContent = extra ? `${summary} ${extra}` : summary;
+            mediaSummary.dataset.state = validationError || mediaSelectionNotice ? 'error' : '';
+            mediaList.replaceChildren();
+
+            selectedMediaFiles.forEach((file, index) => {
+                const item = document.createElement('li');
+                item.className = 'file-list-item';
+
+                const name = document.createElement('span');
+                name.className = 'file-list-name';
+                name.textContent = file.name;
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'file-remove';
+                removeButton.textContent = 'Remove';
+                removeButton.setAttribute('aria-label', `Remove ${file.name}`);
+                removeButton.addEventListener('click', () => {
+                    selectedMediaFiles.splice(index, 1);
+                    mediaSelectionNotice = '';
+                    mediaInput.value = '';
+                    renderMediaSelection();
+                });
+
+                item.append(name, removeButton);
+                mediaList.append(item);
+            });
+        }
+
+        function validateMedia() {
+            const error = getMediaValidationError();
+            if (error) {
+                showFormStatus('error', error);
                 return false;
             }
             return true;
@@ -1642,11 +1779,25 @@
 
         preferredDate.addEventListener('change', validatePreferredDate);
         mediaInput.addEventListener('change', function() {
-            const files = Array.from(this.files || []);
-            mediaSummary.textContent = files.length
-                ? `${files.length} file${files.length === 1 ? '' : 's'} selected.`
-                : 'No files selected.';
-            validateMedia();
+            const existingKeys = new Set(selectedMediaFiles.map(mediaFileKey));
+            let skippedFiles = 0;
+
+            for (const file of Array.from(this.files || [])) {
+                const key = mediaFileKey(file);
+                if (existingKeys.has(key)) continue;
+                if (selectedMediaFiles.length >= maxMediaFiles) {
+                    skippedFiles += 1;
+                    continue;
+                }
+                selectedMediaFiles.push(file);
+                existingKeys.add(key);
+            }
+
+            mediaSelectionNotice = skippedFiles
+                ? `${skippedFiles} additional file${skippedFiles === 1 ? ' was' : 's were'} not added because the limit is 3.`
+                : '';
+            this.value = '';
+            renderMediaSelection();
         });
 
         // Scroll reveal animations
@@ -1689,9 +1840,13 @@
             submitBtn.disabled = true;
 
             try {
+                const requestData = new FormData(this);
+                requestData.delete('media');
+                selectedMediaFiles.forEach(file => requestData.append('media', file, file.name));
+
                 const response = await fetch(APPOINTMENT_ENDPOINT, {
                     method: 'POST',
-                    body: new FormData(this)
+                    body: requestData
                 });
                 const result = await response.json().catch(() => ({}));
 
@@ -1703,7 +1858,9 @@
                 showFormStatus(result.notificationWarning ? 'warning' : 'success', `${result.message}${reference}`);
                 this.reset();
                 optionalDetails.open = false;
-                mediaSummary.textContent = 'No files selected.';
+                selectedMediaFiles = [];
+                mediaSelectionNotice = '';
+                renderMediaSelection();
                 resetTurnstile();
             } catch (error) {
                 showFormStatus('error', `${error.message} Please call (478) 960-2829 if the problem continues.`);
